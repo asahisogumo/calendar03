@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>カレンダーメモ帳（スマホ対応・削除機能付き）</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #eef;
+      max-width: 600px;
+      margin: auto;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .day {
+      border: 1px solid #aaa;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      background: #fff;
+      position: relative;
+      font-size: 14px;
+    }
+    .selected { background: #4CAF50; color: #fff; }
+    .sunday { color: red; }
+    .saturday { color: blue; }
+    .holiday { background: #ffe4e1; }
+    .holiday-name {
+      font-size: 10px;
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      color: #c00;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    button {
+      margin: 5px 5px 10px 0;
+      padding: 10px 15px;
+      font-size: 14px;
+    }
+    @media screen and (max-width: 480px) {
+      .calendar {
+        grid-template-columns: repeat(7, 1fr);
+        font-size: 12px;
+      }
+      .day {
+        padding: 6px;
+      }
+      textarea {
+        height: 80px;
+      }
+      button {
+        font-size: 12px;
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>📅 カレンダーメモ帳</h1>
+  <div>
+    <button onclick="changeMonth(-1)">◀ 前の月</button>
+    <span id="calendarTitle"></span>
+    <button onclick="changeMonth(1)">次の月 ▶</button>
+  </div>
+  <div id="calendar" class="calendar"></div>
+  <textarea id="memo" placeholder="この日にメモを残そう"></textarea><br>
+  <button onclick="saveMemo()">保存</button>
+  <button onclick="deleteMemo()">削除</button>
+
+  <script>
+    const calendar = document.getElementById('calendar');
+    const memo = document.getElementById('memo');
+    const calendarTitle = document.getElementById('calendarTitle');
+
+    let currentDate = new Date();
+    let selectedDate = null;
+
+    const holidays = {
+      '01-01': '元日', '02-11': '建国記念日', '04-29': '昭和の日',
+      '05-03': '憲法記念日', '05-04': 'みどりの日', '05-05': 'こどもの日',
+      '07-20': '海の日', '08-11': '山の日', '09-23': '秋分の日',
+      '11-03': '文化の日', '11-23': '勤労感謝の日', '12-23': '天皇誕生日'
+    };
+
+    function renderCalendar() {
+      calendar.innerHTML = '';
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      calendarTitle.textContent = `${year}年${month + 1}月`;
+
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const startDay = first.getDay();
+
+      for (let i = 0; i < startDay; i++) {
+        const empty = document.createElement('div');
+        calendar.appendChild(empty);
+      }
+
+      for (let i = 1; i <= last.getDate(); i++) {
+        const day = document.createElement('div');
+        const date = new Date(year, month, i);
+        const yyyyMMdd = date.toISOString().split('T')[0];
+        const mmdd = yyyyMMdd.slice(5, 10);
+        day.textContent = i;
+        day.className = 'day';
+        if (date.getDay() === 0) day.classList.add('sunday');
+        if (date.getDay() === 6) day.classList.add('saturday');
+        if (holidays[mmdd]) {
+          day.classList.add('holiday');
+          const label = document.createElement('div');
+          label.textContent = holidays[mmdd];
+          label.className = 'holiday-name';
+          day.appendChild(label);
+        }
+
+        day.onclick = () => {
+          document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+          day.classList.add('selected');
+          selectedDate = yyyyMMdd;
+          memo.value = localStorage.getItem('memo-' + selectedDate) || '';
+        };
+
+        calendar.appendChild(day);
+      }
+    }
+
+    function saveMemo() {
+      if (!selectedDate) return alert('日付を選択してください');
+      localStorage.setItem('memo-' + selectedDate, memo.value);
+      alert('メモを保存しました');
+    }
+
+    function deleteMemo() {
+      if (!selectedDate) return alert('日付を選択してください');
+      localStorage.removeItem('memo-' + selectedDate);
+      memo.value = '';
+      alert('メモを削除しました');
+    }
+
+    function changeMonth(offset) {
+      currentDate.setMonth(currentDate.getMonth() + offset);
+      renderCalendar();
+    }
+
+    renderCalendar();
+  </script>
+
+<!-- 画像アップロード機能 -->
+<input type="file" id="imageUploader" accept="image/*"><br>
+<img id="imagePreview" style="display:none; max-width:100%; margin-top:10px;" alt="画像プレビュー">
+
+<script>
+  const uploader = document.getElementById('imageUploader');
+  const preview = document.getElementById('imagePreview');
+  uploader.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        preview.src = evt.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+
+</body>
+</html>
